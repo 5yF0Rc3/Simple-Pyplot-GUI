@@ -1,5 +1,5 @@
 # Simple-Pyplot-GUI
-A GUI for creating simple scientific dataplots based on Matplotlib for Python. Multiple axis labeling supported.
+A GUI for creating simple scientific dataplots based on Matplotlib and tkinter for Python. Multiple axis labeling supported.
 
 ## EXE
 ![Download Version 1.0](https://github.com/5yF0Rc3/Simple-Pyplot-GUI/raw/master/EXE.zip)
