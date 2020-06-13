@@ -8,7 +8,7 @@ A GUI for creating simple scientific dataplots based on Matplotlib and tkinter f
 
 
 ## Example
-![](EXE/example_GUI.png)
+![](EXE/example_GUI.jpg)
 
 
 
