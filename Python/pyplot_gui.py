@@ -638,6 +638,10 @@ class Application(tk.Frame):
 
         #-----variables--------
 
+        #setting the margin to 0 %, Point 0 Starts at the edge of the plot
+        plt.rcParams['axes.xmargin'] = 0
+        plt.rcParams['axes.ymargin'] = 0
+
         y_axis_dist = self.var_y_dist.get()
         inc_r = 1
         inc_l = -y_axis_dist
