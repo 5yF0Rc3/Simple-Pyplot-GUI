@@ -4,12 +4,23 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import csv
 import webbrowser
+from matplotlib.patches import Rectangle
+from matplotlib.patches import FancyBboxPatch
+
 
 #Dok: https://web.archive.org/web/20190511024508/http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/button.html
 # Dok for Vertical Legend and Markers: LaTex
 # https://matplotlib.org/1.3.1/users/usetex.html?highlight=latex
 # https://stackoverflow.com/questions/32012120/matplotlib-legend-vertical-rotation
 # https://stackoverflow.com/questions/38002700/rotating-legend-or-adding-patch-to-axis-label-in-matplotlib
+
+
+#To Do:
+# Legend on/off
+# host plot, only left possible
+# symbols in labename? CB
+# symbol in label size, bigger
+# y label without spine and ticks
 
 
 class Application(tk.Frame):
@@ -35,7 +46,7 @@ class Application(tk.Frame):
         # Create a new Frame, Right, inside Menue_top
         self.menue_option = tk.LabelFrame(self.menue_top, text="Option",pady = 4, padx = 4,)
 #        self.menue_bottom.grid(row=0, column=0, sticky="nsew")
-        self.menue_option.grid( row = 0, column = 12,rowspan=6, columnspan=2, sticky="n")
+        self.menue_option.grid( row = 0, column = 13,rowspan=6, columnspan=2, sticky="n")
         # -------------------------------
         # Create a new Frame, data, inside Menue_top
         self.menue_func = tk.LabelFrame(self.menue_top, text="Data",pady = 4, padx = 4,)
@@ -53,7 +64,7 @@ class Application(tk.Frame):
 
         self.data_dict = {"Kein Eintrag": 0}
         
-        self.choosemarker = ['o', '.', ',', 'x', '+', 'v', '^', '<', '>', 's', 'd']
+        self.choosemarker = ['o', '.', 'x', '+', 'v', '^', '<', '>', 's', 'd']
         self.chooseline = [' ', 'solid', 'dashed', 'dashdot', 'dotted']
         self.choosecolor = ["black","green","blue","cyan","yellow","red","magenta"]
         self.chooseside = ["right","left"]
@@ -73,8 +84,11 @@ class Application(tk.Frame):
         self.list_ylabel = []
         self.list_xlabel = []
         self.list_data_top = []
+        self.list_hide_tick = []
         # -------------------------------
         self.plot_grid_bool = tk.IntVar()
+        self.colorize_label_bool = tk.IntVar()
+        self.legend_bool = tk.IntVar()
         self.var_y_dist = tk.DoubleVar()
         self.var_y_dist.set(0.08)
         self.var_m_size = tk.DoubleVar()
@@ -114,18 +128,27 @@ class Application(tk.Frame):
                                    row = 0, column = 1, sticky="w")
         self.plot_grid = tk.Checkbutton(self.menue_option, variable=self.plot_grid_bool).grid(
                                    row = 0, column = 0, sticky="w")
-        self.label_y_dist = tk.Label(self.menue_option, text="Distance of Y-axis").grid(
-                                   row = 1, column = 1, sticky="n")
-        self.y_dist = tk.Entry(self.menue_option,  textvariable=self.var_y_dist, width= 5).grid(
+        self.label_colorize_label = tk.Label(self.menue_option, text="Colorize Label").grid(
+                                   row = 1, column = 1, sticky="w")
+        self.colorize_label = tk.Checkbutton(self.menue_option, variable=self.colorize_label_bool).grid(
                                    row = 1, column = 0, sticky="w")
-        self.label_msize = tk.Label(self.menue_option, text="Marker size").grid(
-                                   row = 2, column = 1, sticky="n")
-        self.m_size = tk.Entry(self.menue_option,  textvariable=self.var_m_size, width= 5).grid(
+        self.label_show_legend = tk.Label(self.menue_option, text="Show Legend").grid(
+                                   row = 2, column = 1, sticky="w")
+        self.show_legend = tk.Checkbutton(self.menue_option, variable=self.legend_bool).grid(
                                    row = 2, column = 0, sticky="w")
-        self.label_font_size = tk.Label(self.menue_option, text="Font size").grid(
+        self.label_y_dist = tk.Label(self.menue_option, text="Distance of Y-axis").grid(
                                    row = 3, column = 1, sticky="n")
-        self.font_size = tk.Entry(self.menue_option,  textvariable=self.var_fontsize, width= 5).grid(
+        self.y_dist = tk.Entry(self.menue_option,  textvariable=self.var_y_dist, width= 5).grid(
                                    row = 3, column = 0, sticky="w")
+        self.label_msize = tk.Label(self.menue_option, text="Marker size").grid(
+                                   row = 4, column = 1, sticky="n")
+        self.m_size = tk.Entry(self.menue_option,  textvariable=self.var_m_size, width= 5).grid(
+                                   row = 4, column = 0, sticky="w")
+        self.label_font_size = tk.Label(self.menue_option, text="Font size").grid(
+                                   row = 5, column = 1, sticky="n")
+        self.font_size = tk.Entry(self.menue_option,  textvariable=self.var_fontsize, width= 5).grid(
+                                   row = 5, column = 0, sticky="w")
+
         # -------------------------------
         self.label_hauptplot = tk.Label(self.menue_top, text="Mainplot", bg="#c3cade", width=23).grid(
                                    row = 1, column = 1, columnspan=9, sticky="n")
@@ -176,7 +199,8 @@ class Application(tk.Frame):
                                   row = 7, column = 9, sticky="n")
         self.a_label_ylabel = tk.Label(self.menue_top, text="Axis Y-Label",).grid(
                                   row = 7, column = 10, sticky="n")
-
+        self.a_label_hideticks = tk.Label(self.menue_top, text="Hide Ticks",).grid(
+                                  row = 7, column = 12, sticky="n")
 
         # -------------------------------
         # For list entry only !!!!
@@ -248,11 +272,11 @@ class Application(tk.Frame):
         self.list_side.append([])
         self.list_side[0].append(tk.StringVar())
         try:
-            self.list_side[0][0].set(self.chooseside[0])
+            self.list_side[0][0].set(self.chooseside[1])
         except:
             self.list_side[0][0].set("Kein Eintrag")
         self.list_side[0].append(tk.OptionMenu(self.menue_top, self.list_side[0][0],
-                                                     *self.chooseside))
+                                                     self.chooseside[1]))
         self.list_side[0][1].config(width=6)
         self.list_side[0][1].grid(row = 4, column = 7, sticky="n")
         # -
@@ -278,7 +302,12 @@ class Application(tk.Frame):
         self.list_xlabel[0].append(tk.StringVar())
         self.list_xlabel[0].append(tk.Entry(self.menue_top, textvariable=self.list_xlabel[0][0]))
         self.list_xlabel[0][1].grid(row = 4, column = 11, sticky="n")
-
+        # -
+        self.list_hide_tick.append([])
+        self.list_hide_tick[0].append(tk.IntVar())
+        self.list_hide_tick[0][0].set(0)
+        self.list_hide_tick[0].append(tk.Checkbutton(self.menue_top, variable=self.list_hide_tick[0][0]))
+        #self.list_hide_tick[0][1].grid(row = self.rowcount, column = 12, sticky="n")
 
         # -------------------------------
         # First initial row
@@ -441,6 +470,14 @@ class Application(tk.Frame):
         #self.list_xlabel[cline].append(tk.StringVar())
         #self.list_xlabel[cline].append(tk.Entry(self.menue_top, textvariable=self.list_xlabel[cline][0]))
         #self.list_xlabel[cline][1].grid(row = self.rowcount, column = 11, sticky="n")
+        # - 
+        self.list_hide_tick.append([])
+        self.list_hide_tick[cline].append(tk.IntVar())
+        self.list_hide_tick[cline][0].set(0)
+        self.list_hide_tick[cline].append(tk.Checkbutton(self.menue_top, variable=self.list_hide_tick[cline][0]))
+        self.list_hide_tick[cline][1].grid(row = self.rowcount, column = 12, sticky="n")
+
+
         # -------------------------------
 
         self.rowcount += 1
@@ -485,13 +522,14 @@ class Application(tk.Frame):
                             except:
                                 data_list[j].append(temp[i][j])
 
+            # into Dict
             for i in range(len(data_list)):
                 # set datanames into name
                 name = [data_list[i][0]]
                 # deletes names from data
                 data_list[i].pop(0)
                 # append data to name key dict
-                print(i, name, data_list)
+                print(i, name, data_list[i])
                 self.data_dict[name[0]] = data_list[i]
         except:
             print("Keine Datei geladen")
@@ -515,8 +553,11 @@ class Application(tk.Frame):
         newaxisy = []
         position = []
         data_top = []
+        hidetick = []
 
         zwlist =[]
+
+        print("DEBUG: gen_builder")
 
         for i in range(len(self.list_datax)):
             if self.list_datax[i][0].get() != "__XX__XX__":
@@ -546,7 +587,6 @@ class Application(tk.Frame):
             if self.list_side[i][0].get() != "__XX__XX__":
                 position.append(self.list_side[i][0].get())  
         for i in range(len(self.list_newaxis)):
-            print(self.list_newaxis[i][0].get())
             if self.list_newaxis[i][0].get() != 2:
                 newaxisy.append(self.list_newaxis[i][0].get())
         for i in range(len(self.list_ylabel)):
@@ -558,9 +598,12 @@ class Application(tk.Frame):
         for i in range(len(self.list_data_top)):
             if self.list_data_top[i][0].get() != "__XX__XX__":
                 data_top.append(self.list_data_top[i][0].get())
+        for i in range(len(self.list_hide_tick)):
+            if self.list_hide_tick[i][0].get() != 2:
+                hidetick.append(self.list_hide_tick[i][0].get())
 
         self.gen_plot( variablex, variabley, linetype, color, marker, name,
-                         axislabelx, axislabely, newaxisy, position, data_top)
+                         axislabelx, axislabely, newaxisy, position, data_top, hidetick)
 
 
 
@@ -573,7 +616,7 @@ class Application(tk.Frame):
             
 
     def gen_plot(self, variablex, variabley, linetype, color, marker, name,
-                 axislabelx, axislabely, newaxisy, position, data_top):
+                 axislabelx, axislabely, newaxisy, position, data_top, hidetick):
         """
         arguments:
         variablex = []
@@ -590,7 +633,11 @@ class Application(tk.Frame):
         -------
         pos[0] for mainplot 
         """
+        print("DEBUG: gen_plot")
+
+
         #-----variables--------
+
         y_axis_dist = self.var_y_dist.get()
         inc_r = 1
         inc_l = -y_axis_dist
@@ -600,9 +647,9 @@ class Application(tk.Frame):
         fontsize = self.var_fontsize.get()
 
         #-----Hostplotting----------------------
-        fig, host = plt.subplots(figsize=(15,5))
+        fig, host = plt.subplots(figsize=(20,5), dpi=100)
         #verkleinert die Bbox der Axes auf 0.75
-        fig.subplots_adjust(right=0.75)
+        fig.subplots_adjust(left=0.25, right=0.75)
 
         tkw = dict(size=4, width=1.5, labelsize=fontsize)
         p1, = host.plot(variablex[0], variabley[0], ls=linetype[0], color=color[0],
@@ -613,14 +660,22 @@ class Application(tk.Frame):
 #        host.grid(True, which='minor', ls='--')
         host.set_xlabel(axislabelx[0], fontsize=fontsize)
         host.set_ylabel(axislabely[0], fontsize=fontsize)
-        host.yaxis.label.set_color(p1.get_color())
-        host.tick_params(axis='y', colors=p1.get_color(), **tkw)
+        an1 = host.annotate(self.get_symbol(marker[0]), xy=(0, 0), xycoords=host.yaxis.label, 
+                           xytext=(0, -10), textcoords="offset points",
+                           va="center", ha="left", rotation=90,
+                           color=color[0], size=fontsize
+                           )
+        if self.colorize_label_bool.get():
+            host.yaxis.label.set_color(p1.get_color())
+            host.tick_params(axis='y', colors=p1.get_color(), **tkw)
+        else:
+            host.yaxis.label.set_color("black")
+            host.tick_params(axis='y', colors="black", **tkw)
         host.tick_params(axis='x', **tkw)
-
         #host.set_xlim(left=0)
         #host.set_ylim(bottom=0)
         lines = [p1]
-
+        
         #------Rest Y Axis----------------------
         for ix, i in enumerate(variabley):
             if ix != 0:
@@ -634,19 +689,54 @@ class Application(tk.Frame):
                         inc_r += y_axis_dist
                     elif position[ix] == 'left':
                         par.spines[position[ix]].set_position(("axes", inc_l))
-                        inc_l -= y_axis_dist
+                        inc_l += -y_axis_dist
                     # make patch invisible and the spine visible. Also set the position of the tick and label
                     self.make_patch_spines_invisible(par)
                     par.spines[position[ix]].set_visible(True)
                     par.yaxis.set_label_position(position[ix])
                     par.yaxis.set_ticks_position(position[ix])
+
+                    # hide Ticks
+                    if hidetick[ix] != 0:
+                        par.tick_params(
+                            axis='y',          # changes apply to the x-axis
+                            which='both',      # both major and minor ticks are affected
+                            left=False,      
+                            right=False,         
+                            labelright=False,
+                            labelleft=False,)
+                        par.spines[position[ix]].set_visible(False)
+                        # correct the distance for the next spine and this one
+                        if position[ix] == 'right':
+                            par.spines[position[ix]].set_position(("axes", inc_r -y_axis_dist -0.01))
+                            inc_r += -y_axis_dist +0.02
+                        elif position[ix] == 'left':
+                            par.spines[position[ix]].set_position(("axes", inc_l +y_axis_dist + 0.01))
+                            inc_l += y_axis_dist -0.02
+
                     # create plot
-#                   print("create P: X = ",variablex[0],", Y =", variabley[ix] )
+                    
                     p, = par.plot(variablex[0], variabley[ix], ls=linetype[ix], color=color[ix],
                                  marker=marker[ix], ms=msize, label=name[ix])
                     par.set_ylabel(axislabely[ix], fontsize=fontsize)
-                    par.yaxis.label.set_color(p.get_color())
-                    par.tick_params(axis='y', colors=p.get_color(), **tkw)
+
+
+
+
+                    if self.colorize_label_bool.get():
+                        par.yaxis.label.set_color(p.get_color())
+                        par.tick_params(axis='y', colors=p.get_color(), **tkw)
+                    else:
+                        par.yaxis.label.set_color("black")
+                        par.tick_params(axis='y', colors="black", **tkw)
+
+                    an2 = par.annotate(self.get_symbol(marker[ix]), xy=(0, 0), xycoords=par.yaxis.label,
+                                        xytext=(0, -10), textcoords="offset points",
+                                        va="center", ha="left", rotation=90,
+                                        color=color[ix], size=fontsize
+                                        )
+
+                    
                     par.set_ylim(bottom=0)
                     if data_top[ix] != "auto":
                         try:
@@ -656,10 +746,11 @@ class Application(tk.Frame):
                     lines.append(p)
                 else:
                     #self.make_patch_spines_invisible(par)
-                    #par.axis("off")$
+                    #par.axis("off")
                     p, = host.plot(variablex[0], variabley[ix], ls=linetype[ix], color=color[ix],
                        marker=marker[ix], ms=msize, label=name[ix])
                     lines.append(p)
+                    
                 n_col += 1
 
         host.set_ylim(bottom=0)
@@ -668,15 +759,41 @@ class Application(tk.Frame):
                 host.set_ylim(top=float(data_top[0]))
             except:
                 print("cant set TOP! no Valid Float.")
-        host.legend(lines, [l.get_label() for l in lines], fontsize=fontsize, 
-                    bbox_to_anchor=(0., 1.02, 1., .102), ncol=n_col, mode="expand", loc='best')
-        
+        # show legend
+        if self.legend_bool.get() == 1:
+            host.legend(lines, [l.get_label() for l in lines], fontsize=fontsize, 
+                        bbox_to_anchor=(0., 1.02, 1., .102), ncol=n_col, mode="expand", loc='best')
+
+
         #tkinter gui
         scatter = FigureCanvasTkAgg(fig, self.menue_bottom)
         scatter.get_tk_widget().grid(row = 0, column = 0, sticky="n")
 
         self.free_to_save = True
-        #plt.show()
+
+        #plt.show() # plt.close(fig=None) für das schliessen des alten fensters
+        
+
+
+
+
+    def get_symbol(self, marker):
+        # \u for unicode
+        symbol_dict = {'o':'\u25CF',
+                        'd':'\u29EB',
+                        's':'\\blacksquare',
+                        '+':'\\plus',
+                        'x':'\\times',
+                        '.':'\\bullet',
+                        '<':'\\blacktriangleleft',
+                        '>':'\\blacktriangleright',
+                        'v':'\\blacktriangledown',
+                        '^':'\\blacktriangle'}
+        
+
+        symbol = symbol_dict[marker]
+        #symbol = "blacktriangleleft"
+        return "$"+symbol+"$"
 
 
 
@@ -686,7 +803,8 @@ class Application(tk.Frame):
             if not datapath:
                 print("no path")
                 return
-            plt.savefig(datapath, dpi=300, bbox_inches="tight")
+            plt.savefig(datapath, dpi=100, bbox_inches="tight")
+            #plt.savefig(datapath, dpi=100)
         else:     
             print("Error, cant save fig, not yet constructed")
     
@@ -753,6 +871,11 @@ class Application(tk.Frame):
 
         self.list_data_top[row][1].grid_forget()
         self.list_data_top[row][0].set("__XX__XX__")
+
+        self.list_hide_tick[row][1].grid_forget()
+        self.list_hide_tick[row][0].set(2)
+
+
 
 #        self.list_xlabel[row][1].grid_forget()
 #        self.list_xlabel.pop(row)
